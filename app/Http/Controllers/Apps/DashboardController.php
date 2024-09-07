@@ -18,16 +18,12 @@ class DashboardController extends Controller
      */
     public function __invoke(Request $request)
     {
-        //day
         $day    = date('d');
-
-        //week
         $week = Carbon::now()->subDays(7);
-
-        //chart sales 7 days
+        
         $chart_sales_week = DB::table('transactions')
-        ->addSelect(DB::raw('DATE(created_at) as date, SUM(grand_total) as grand_total'))
-        ->where('created_at', '>=', $week)
+            ->addSelect(DB::raw('DATE(created_at) as date, SUM(grand_total) as grand_total'))
+            ->where('created_at', '>=', $week)
             ->groupBy('date')
             ->get();
 
@@ -41,27 +37,18 @@ class DashboardController extends Controller
             $grand_total[]  = "";
         }
 
-
-        //count sales today
         $count_sales_today = Transaction::whereDay('created_at', $day)->count();
-
-        //sum sales today
         $sum_sales_today = Transaction::whereDay('created_at', $day)->sum('grand_total');
-
-        //sum profits today
         $sum_profits_today = Profit::whereDay('created_at', $day)->sum('total');
-
-        //get product limit stock
         $products_limit_stock = Product::with('category')->where('stock', '<=', 10)->get();
-
-        //chart best selling product
         $chart_best_products = DB::table('transaction_details')
-        ->addSelect(DB::raw('products.title as title, SUM(transaction_details.qty) as total'))
-        ->join('products', 'products.id', '=', 'transaction_details.product_id')
-        ->groupBy('transaction_details.product_id')
-        ->orderBy('total', 'DESC')
-        ->limit(5)
+            ->select('products.title as title', DB::raw('SUM(transaction_details.qty) as total'))
+            ->join('products', 'products.id', '=', 'transaction_details.product_id')
+            ->groupBy('products.title', 'transaction_details.product_id')
+            ->orderBy('total', 'DESC')
+            ->limit(5)
             ->get();
+
 
         if (count($chart_best_products)) {
             foreach ($chart_best_products as $data) {
